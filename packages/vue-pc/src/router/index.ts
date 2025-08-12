@@ -56,6 +56,11 @@ const routes = [
     name: 'TemplateReview',
     component: () => import('@/views/pageManager/templateReview/page.vue'),
   },
+  {
+    path: '/campaign-list',
+    name: 'CampaignList',
+    component: () => import('@/views/campaign-management/CampaignList.vue'),
+  },
 ];
 
 const router = createRouter({
