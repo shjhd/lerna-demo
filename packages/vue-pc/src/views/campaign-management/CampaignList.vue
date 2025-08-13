@@ -12,20 +12,20 @@
     
     <!-- 搜索表单 -->
     <div class="search-form">
-      <a-form :model="searchForm" layout="vertical" @finish="handleSearch">
+      <a-form :model="searchForm" layout="horizontal" @finish="handleSearch">
         <a-row :gutter="24">
           <a-col :span="6">
-            <a-form-item label="销售商品名称">
+            <a-form-item label="销售商品名称" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
               <a-input v-model:value="searchForm.productName" placeholder="请输入" style="width: 100%" />
             </a-form-item>
           </a-col>
           <a-col :span="6">
-            <a-form-item label="销售方案编码">
+            <a-form-item label="销售方案编码" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
               <a-input v-model:value="searchForm.salesPlanCode" placeholder="请输入" style="width: 100%" />
             </a-form-item>
           </a-col>
           <a-col :span="6">
-            <a-form-item label="销售渠道">
+            <a-form-item label="销售渠道" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
               <a-select v-model:value="searchForm.salesChannel" placeholder="请选择" allow-clear style="width: 100%">
                 <a-select-option value="life">寿险</a-select-option>
                 <a-select-option value="bank">银行</a-select-option>
@@ -36,7 +36,7 @@
             </a-form-item>
           </a-col>
           <a-col :span="6">
-            <a-form-item label="投保方式">
+            <a-form-item label="投保方式" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
               <a-select v-model:value="searchForm.insuranceMethod" placeholder="请选择" allow-clear style="width: 100%">
                 <a-select-option value="online">线上投保</a-select-option>
                 <a-select-option value="offline">线下投保</a-select-option>
@@ -46,7 +46,7 @@
         </a-row>
         <a-row :gutter="24">
           <a-col :span="6">
-            <a-form-item label="特殊业务类型">
+            <a-form-item label="特殊业务类型" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
               <a-select v-model:value="searchForm.specialBusinessType" placeholder="请选择" allow-clear style="width: 100%">
                 <a-select-option value="type1">类型1</a-select-option>
                 <a-select-option value="type2">类型2</a-select-option>
@@ -54,7 +54,7 @@
             </a-form-item>
           </a-col>
           <a-col :span="6">
-            <a-form-item label="投放有效期">
+            <a-form-item label="投放有效期" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
               <a-range-picker 
                 v-model:value="searchForm.validPeriod" 
                 show-time 
@@ -64,25 +64,22 @@
             </a-form-item>
           </a-col>
           <a-col :span="6">
-            <a-form-item label="状态">
+            <a-form-item label="状态" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
               <a-select v-model:value="searchForm.status" placeholder="请选择" allow-clear style="width: 100%">
-                <a-select-option value="1">投放中</a-select-option>
-                <a-select-option value="2">已终止</a-select-option>
-                <a-select-option value="3">已过期</a-select-option>
+                <a-select-option value="1">有效</a-select-option>
+                <a-select-option value="0">无效</a-select-option>
               </a-select>
             </a-form-item>
           </a-col>
           <a-col :span="6">
-            <a-form-item label="&nbsp;">
-              <a-space>
-                <a-button type="primary" html-type="submit" :loading="loading">
-                  查询
-                </a-button>
-                <a-button @click="handleReset">
-                  重置
-                </a-button>
-              </a-space>
-            </a-form-item>
+            <div style="display: flex; justify-content: end; height: 100%; padding-bottom: 4px;">
+              <a-button type="primary" html-type="submit" :loading="loading">
+                查询
+              </a-button>
+              <a-button style="margin-left: 8px" @click="handleReset">
+                重置
+              </a-button>
+            </div>
           </a-col>
         </a-row>
       </a-form>
@@ -98,6 +95,11 @@
           新增
         </a-button>
       </div>
+      <div class="table-info">
+        <span class="total-info">
+          共 {{ pagination.total }} 条记录
+        </span>
+      </div>
     </div>
     
     <!-- 表格 -->
@@ -110,12 +112,12 @@
         @change="handleTableChange"
         row-key="id">
         <template #status="{ text }">
-          <a-tag :color="text === 1 ? 'green' : text === 2 ? 'red' : 'orange'">
-            {{ text === 1 ? '投放中' : text === 2 ? '已终止' : '已过期' }}
+          <a-tag :color="text === 1 ? 'green' : 'red'">
+            {{ text === 1 ? '有效' : '无效' }}
           </a-tag>
         </template>
         <template #action="{ record }">
-          <a-button type="link" size="small" @click="handleTerminate(record)" :disabled="record.status !== 1">终止投放</a-button>
+          <a-button type="link" size="small" @click="handleDetail(record)">详情</a-button>
         </template>
       </a-table>
     </div>
@@ -249,7 +251,7 @@ const mockData: Campaign[] = [
     specialBusinessType: 'type1',
     validPeriod: '2023-01-01 00:00:00 ~ 2023-12-31 23:59:59',
     status: 1,
-    statusText: '投放中'
+    statusText: '有效'
   },
   {
     id: '2',
@@ -259,8 +261,8 @@ const mockData: Campaign[] = [
     insuranceMethod: 'offline',
     specialBusinessType: 'type2',
     validPeriod: '2023-06-01 00:00:00 ~ 2024-05-31 23:59:59',
-    status: 2,
-    statusText: '已终止'
+    status: 0,
+    statusText: '无效'
   },
   {
     id: '3',
@@ -270,8 +272,8 @@ const mockData: Campaign[] = [
     insuranceMethod: 'online',
     specialBusinessType: 'type1',
     validPeriod: '2022-01-01 00:00:00 ~ 2022-12-31 23:59:59',
-    status: 3,
-    statusText: '已过期'
+    status: 0,
+    statusText: '无效'
   }
 ];
 
@@ -384,25 +386,13 @@ const handleTableChange = (pag: any) => {
   loadData();
 };
 
-// 终止投放
-const handleTerminate = async (record: Campaign) => {
-  try {
-    // 在实际项目中，这里会调用API
-    // await terminateCampaign(record.id);
-    
-    // Mock实现
-    const index = tableData.value.findIndex(item => item.id === record.id);
-    if (index !== -1) {
-      tableData.value[index].status = 2;
-      tableData.value[index].statusText = '已终止';
-    }
-    
-    message.success('终止投放成功');
-    loadData();
-  } catch (error) {
-    message.error('终止投放失败');
-    console.error('Failed to terminate campaign:', error);
-  }
+// 查看详情
+const handleDetail = (record: Campaign) => {
+  // 通过路由query参数传递数据到详情页
+  router.push({
+    path: `/campaign-detail/${record.id}`,
+    query: { data: encodeURIComponent(JSON.stringify(record)) }
+  });
 };
 
 // 新增投放
@@ -446,6 +436,14 @@ onMounted(() => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
+/* 添加表单项label样式 */
+.search-form .ant-form-item-label {
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .search-form .ant-form-item {
   margin-bottom: 16px;
 }
@@ -460,6 +458,18 @@ onMounted(() => {
 .action-buttons {
   display: flex;
   gap: 8px;
+}
+
+.table-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: #666;
+  font-size: 14px;
+}
+
+.total-info {
+  color: #999;
 }
 
 .table-container {
@@ -488,23 +498,12 @@ onMounted(() => {
   background: #f5f5f5;
 }
 
-.ant-tag {
-  border-radius: 4px;
-  font-size: 12px;
-  padding: 2px 8px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.ant-btn-link {
-  padding: 0;
-  height: auto;
-  line-height: 1.5;
-}
-
-.ant-btn-link + .ant-btn-link {
-  margin-left: 8px;
+/* 查询按钮容器 */
+.search-form .button-container {
+  display: flex;
+  align-items: flex-end;
+  height: 100%;
+  padding-bottom: 4px;
 }
 
 /* 响应式设计 */
@@ -529,6 +528,7 @@ onMounted(() => {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
+    margin-bottom: 16px;
   }
   
   .action-buttons {

@@ -61,6 +61,11 @@ const routes = [
     name: 'CampaignList',
     component: () => import('@/views/campaign-management/CampaignList.vue'),
   },
+  {
+    path: '/campaign-detail/:id',
+    name: 'CampaignDetail',
+    component: () => import('@/views/campaign-management/components/CampaignDetail.vue'),
+  },
 ];
 
 const router = createRouter({
