@@ -15,7 +15,7 @@
       <a-form :model="searchForm" layout="horizontal" @finish="handleSearch">
         <a-row :gutter="24">
           <a-col :span="6">
-            <a-form-item label="销售商品名称" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
+            <a-form-item label="商品名称" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
               <a-input v-model:value="searchForm.productName" placeholder="请输入" style="width: 100%" />
             </a-form-item>
           </a-col>
@@ -54,7 +54,7 @@
             </a-form-item>
           </a-col>
           <a-col :span="6">
-            <a-form-item label="投放有效期" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
+            <a-form-item label="有效期" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
               <a-range-picker 
                 v-model:value="searchForm.validPeriod" 
                 show-time 
@@ -85,66 +85,75 @@
       </a-form>
     </div>
     
-    <!-- 操作栏 -->
+    <!-- 操作栏 - 已删除所有按钮 -->
     <div class="action-bar">
       <div class="action-buttons">
-        <a-button type="primary" @click="handleAdd">
-          <template #icon>
-            <PlusOutlined />
-          </template>
-          新增
-        </a-button>
-      </div>
-      <div class="table-info">
-        <span class="total-info">
-          共 {{ pagination.total }} 条记录
-        </span>
+        <!-- 已移除所有操作按钮 -->
       </div>
     </div>
     
-    <!-- 表格 -->
+    <!-- 表格和分页容器 -->
     <div class="table-container">
+      <!-- 表格 -->
       <a-table 
         :columns="columns" 
         :data-source="tableData" 
         :loading="loading" 
-        :pagination="pagination"
+        :pagination="false"
         @change="handleTableChange"
-        row-key="id">
+        row-key="id"
+        :scroll="{ x: 'max-content' }"
+        class="bordered-table">
         <template #status="{ text }">
-          <a-tag :color="text === 1 ? 'green' : 'red'">
-            {{ text === 1 ? '有效' : '无效' }}
-          </a-tag>
+          <span class="status-dot" :class="{ 'status-active': text === 1, 'status-inactive': text === 0 }"></span>
+          <span>{{ text === 1 ? '有效' : '无效' }}</span>
         </template>
         <template #action="{ record }">
+          <!-- 只保留详情按钮 -->
           <a-button type="link" size="small" @click="handleDetail(record)">详情</a-button>
         </template>
       </a-table>
+      
+      <!-- 分页组件 -->
+      <div class="pagination-bar">
+        <div class="pagination-info">
+          共 {{ pagination.total }} 条记录 第 {{ pagination.pageNum }}/{{ Math.ceil(pagination.total / pagination.pageSize) }} 页
+        </div>
+        <div class="pagination-controls">
+          <a-pagination
+            v-model:current-page="pagination.pageNum"
+            v-model:page-size="pagination.pageSize"
+            :total="pagination.total"
+            show-size-changer
+            show-quick-jumper
+            :show-total="() => ''"
+            @change="handlePageChange"
+            @show-size-change="handlePageSizeChange"
+          />
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
-import { PlusOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import type {
   Campaign,
   CampaignSearchForm,
-  CampaignListResponse,
   PaginationParams
 } from './types';
-import {
-  getCampaignList,
-  terminateCampaign
-} from './api';
 import { useRouter } from 'vue-router';
+import mockData from './mockData'; // 导入独立的mock数据
 
 // 路由
 const router = useRouter();
 
 // 搜索表单
-const searchForm = reactive<CampaignSearchForm>({});
+const searchForm = reactive<CampaignSearchForm>({
+  status: undefined // 确保初始化为undefined而不是空字符串
+});
 
 // 表格数据
 const tableData = ref<Campaign[]>([]);
@@ -162,7 +171,7 @@ const columns = [
     dataIndex: 'productName',
     key: 'productName',
     ellipsis: true,
-    width: 150,
+    width: 120,  // 从150调整为120
     tooltip: (text: string) => text
   },
   {
@@ -170,7 +179,7 @@ const columns = [
     dataIndex: 'salesPlanCode',
     key: 'salesPlanCode',
     ellipsis: true,
-    width: 150,
+    width: 120,  // 从150调整为120
     tooltip: (text: string) => text
   },
   {
@@ -178,7 +187,7 @@ const columns = [
     dataIndex: 'salesChannel',
     key: 'salesChannel',
     ellipsis: true,
-    width: 120,
+    width: 100,  // 从120调整为100
     customRender: ({ text }: { text: string }) => {
       const channelMap: Record<string, string> = {
         'life': '寿险',
@@ -191,127 +200,67 @@ const columns = [
     }
   },
   {
-    title: '投保方式',
-    dataIndex: 'insuranceMethod',
-    key: 'insuranceMethod',
-    ellipsis: true,
-    width: 120,
-    customRender: ({ text }: { text: string }) => {
-      const methodMap: Record<string, string> = {
-        'online': '线上投保',
-        'offline': '线下投保'
-      };
-      return methodMap[text] || text;
-    }
-  },
-  {
-    title: '特殊业务类型',
-    dataIndex: 'specialBusinessType',
-    key: 'specialBusinessType',
-    ellipsis: true,
-    width: 120,
-    customRender: ({ text }: { text: string }) => {
-      const typeMap: Record<string, string> = {
-        'type1': '类型1',
-        'type2': '类型2'
-      };
-      return typeMap[text] || text;
-    }
-  },
-  {
     title: '投放有效期',
     dataIndex: 'validPeriod',
     key: 'validPeriod',
     ellipsis: true,
-    width: 200,
+    width: 160,  // 从200调整为160
+    tooltip: (text: string) => text
+  },
+  // 表格列定义中的状态列应该这样定义：
+  {
+    title: '状态',
+    dataIndex: 'status',
+    key: 'status',
+    slots: { customRender: 'status' },
+    width: 80
+  },
+  {
+    title: '创建人',
+    dataIndex: 'creator',
+    key: 'creator',
+    ellipsis: true,
+    width: 100,  // 从120调整为100
     tooltip: (text: string) => text
   },
   {
-    title: '状态',
-    key: 'status',
-    slots: { customRender: 'status' },
-    width: 100
+    title: '创建时间',
+    dataIndex: 'createTime',
+    key: 'createTime',
+    ellipsis: true,
+    width: 150,  // 从180调整为150
+    tooltip: (text: string) => text
+  },
+  {
+    title: '编辑人',
+    dataIndex: 'editor',
+    key: 'editor',
+    ellipsis: true,
+    width: 100,  // 从120调整为100
+    tooltip: (text: string) => text
+  },
+  {
+    title: '更新时间',
+    dataIndex: 'updateTime',
+    key: 'updateTime',
+    ellipsis: true,
+    width: 150,  // 从180调整为150
+    tooltip: (text: string) => text
   },
   {
     title: '操作',
     key: 'action',
     slots: { customRender: 'action' },
-    width: 180
+    width: 80   // 保持80不变
   },
-];
-
-// Mock数据
-const mockData: Campaign[] = [
-  {
-    id: '1',
-    productName: '商品A',
-    salesPlanCode: 'SPC001',
-    salesChannel: 'life',
-    insuranceMethod: 'online',
-    specialBusinessType: 'type1',
-    validPeriod: '2023-01-01 00:00:00 ~ 2023-12-31 23:59:59',
-    status: 1,
-    statusText: '有效'
-  },
-  {
-    id: '2',
-    productName: '商品B',
-    salesPlanCode: 'SPC002',
-    salesChannel: 'bank',
-    insuranceMethod: 'offline',
-    specialBusinessType: 'type2',
-    validPeriod: '2023-06-01 00:00:00 ~ 2024-05-31 23:59:59',
-    status: 0,
-    statusText: '无效'
-  },
-  {
-    id: '3',
-    productName: '商品C',
-    salesPlanCode: 'SPC003',
-    salesChannel: 'property',
-    insuranceMethod: 'online',
-    specialBusinessType: 'type1',
-    validPeriod: '2022-01-01 00:00:00 ~ 2022-12-31 23:59:59',
-    status: 0,
-    statusText: '无效'
-  }
 ];
 
 // 加载数据
 const loadData = async () => {
-  // 检查是否有搜索条件
-  const hasSearchParams = Object.values(searchForm).some(value => {
-    if (value === undefined || value === null || value === '') return false;
-    if (Array.isArray(value) && value.length === 0) return false;
-    return true;
-  });
-
-  // 如果没有搜索条件且不是首次加载，则不发起请求
-  if (!hasSearchParams && pagination.pageNum !== 1) {
-    return;
-  }
-
   loading.value = true;
   try {
-    // 使用mock数据
-    // 在实际项目中，这里会调用API
-    // const params = {
-    //   ...searchForm,
-    //   ...pagination
-    // };
-    // // 处理时间范围
-    // if (params.validPeriod && Array.isArray(params.validPeriod) && params.validPeriod.length === 2) {
-    //   params.startTime = params.validPeriod[0].format('YYYY-MM-DD HH:mm:ss');
-    //   params.endTime = params.validPeriod[1].format('YYYY-MM-DD HH:mm:ss');
-    //   delete params.validPeriod;
-    // }
-    // const res = await getCampaignList(params);
-    // tableData.value = res.list;
-    // pagination.total = res.total;
-    
     // Mock数据实现
-    // 简单的过滤逻辑，实际项目中应该在服务端处理
-    let filteredData = mockData;
+    let filteredData = mockData; // 使用导入的mock数据
     
     // 根据搜索条件过滤数据
     if (searchForm.productName) {
@@ -326,25 +275,21 @@ const loadData = async () => {
       filteredData = filteredData.filter(item => item.salesChannel === searchForm.salesChannel);
     }
     
-    if (searchForm.insuranceMethod) {
-      filteredData = filteredData.filter(item => item.insuranceMethod === searchForm.insuranceMethod);
-    }
+    // 移除对投保方式和特殊业务类型的过滤
     
-    if (searchForm.specialBusinessType) {
-      filteredData = filteredData.filter(item => item.specialBusinessType === searchForm.specialBusinessType);
-    }
-    
-    if (searchForm.status) {
-      filteredData = filteredData.filter(item => item.status.toString() === searchForm.status);
+    // 在loadData函数中的状态过滤逻辑部分进行如下修改：
+    // 修复状态过滤逻辑：只有当状态筛选条件存在时才进行过滤
+    if (searchForm.status !== undefined && searchForm.status !== null) {
+      filteredData = filteredData.filter(item => item.status === searchForm.status);
     }
     
     if (searchForm.validPeriod && Array.isArray(searchForm.validPeriod) && searchForm.validPeriod.length === 2) {
       // 简单的时间范围过滤逻辑
       const [startTime, endTime] = searchForm.validPeriod;
-      // 这里只是一个示例，实际的时间范围过滤应该更复杂
+      // 实际项目中应该使用moment或dayjs进行日期比较
       // filteredData = filteredData.filter(item => {
-      //   return moment(item.validPeriod.split(' ~ ')[0]).isSameOrAfter(startTime) && 
-      //          moment(item.validPeriod.split(' ~ ')[1]).isSameOrBefore(endTime);
+      //   const [itemStart, itemEnd] = item.validPeriod.split(' ~ ');
+      //   return itemStart >= startTime && itemEnd <= endTime;
       // });
     }
     
@@ -386,6 +331,19 @@ const handleTableChange = (pag: any) => {
   loadData();
 };
 
+// 分页变化处理
+const handlePageChange = (page: number) => {
+  pagination.pageNum = page;
+  loadData();
+};
+
+// 每页条数变化处理
+const handlePageSizeChange = (current: number, size: number) => {
+  pagination.pageNum = 1; // 重置到第一页
+  pagination.pageSize = size;
+  loadData();
+};
+
 // 查看详情
 const handleDetail = (record: Campaign) => {
   // 通过路由query参数传递数据到详情页
@@ -393,11 +351,6 @@ const handleDetail = (record: Campaign) => {
     path: `/campaign-detail/${record.id}`,
     query: { data: encodeURIComponent(JSON.stringify(record)) }
   });
-};
-
-// 新增投放
-const handleAdd = () => {
-  router.push('/campaign-add');
 };
 
 // 初始加载数据
@@ -436,7 +389,6 @@ onMounted(() => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-/* 添加表单项label样式 */
 .search-form .ant-form-item-label {
   text-align: left;
   white-space: nowrap;
@@ -450,7 +402,7 @@ onMounted(() => {
 
 .action-bar {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   margin-bottom: 16px;
 }
@@ -460,18 +412,7 @@ onMounted(() => {
   gap: 8px;
 }
 
-.table-info {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  color: #666;
-  font-size: 14px;
-}
-
-.total-info {
-  color: #999;
-}
-
+/* 表格容器 */
 .table-container {
   background: #fff;
   border-radius: 8px;
@@ -479,88 +420,111 @@ onMounted(() => {
   overflow: hidden;
 }
 
-.table-container .ant-table {
-  border-radius: 8px;
+/* 有边框表格 */
+.bordered-table {
+  border: 1px solid #f0f0f0;
+  border-radius: 8px 8px 0 0;
 }
 
-.table-container .ant-table-thead > tr > th {
+.bordered-table .ant-table-content {
+  border-radius: 8px 8px 0 0;
+}
+
+.bordered-table .ant-table-thead > tr > th {
   background: #fafafa;
   border-bottom: 1px solid #f0f0f0;
   font-weight: 600;
   color: #262626;
+  border-right: 1px solid #f0f0f0;
 }
 
-.table-container .ant-table-tbody > tr > td {
+.bordered-table .ant-table-thead > tr > th:last-child {
+  border-right: none;
+}
+
+.bordered-table .ant-table-tbody > tr > td {
   border-bottom: 1px solid #f0f0f0;
+  border-right: 1px solid #f0f0f0;
 }
 
-.table-container .ant-table-tbody > tr:hover > td {
+.bordered-table .ant-table-tbody > tr > td:last-child {
+  border-right: none;
+}
+
+.bordered-table .ant-table-tbody > tr:last-child > td {
+  border-bottom: none;
+}
+
+.bordered-table .ant-table-tbody > tr:hover > td {
   background: #f5f5f5;
 }
 
-/* 查询按钮容器 */
-.search-form .button-container {
+/* 分页栏 */
+.pagination-bar {
   display: flex;
-  align-items: flex-end;
-  height: 100%;
-  padding-bottom: 4px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  border-top: 1px solid #f0f0f0;
+  background: #fff;
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .campaign-management {
-    padding: 16px;
-  }
-  
-  .search-form {
-    padding: 16px;
-  }
-  
-  .search-form .ant-form {
-    flex-direction: column;
-  }
-  
-  .search-form .ant-form-item {
-    width: 100%;
-  }
-  
-  .action-bar {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-    margin-bottom: 16px;
-  }
-  
-  .action-buttons {
-    flex-wrap: wrap;
-  }
-  
-  .table-container {
-    overflow-x: auto;
-  }
+.pagination-info {
+  font-size: 14px;
+  color: #666;
 }
 
-/* 自定义滚动条 */
-.table-container ::-webkit-scrollbar {
-  height: 6px;
+.pagination-controls {
+  display: flex;
+  align-items: center;
 }
 
-.table-container ::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
+.pagination-controls :deep(.ant-pagination) {
+  margin: 0;
 }
 
-.table-container ::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
+.pagination-controls :deep(.ant-pagination-prev),
+.pagination-controls :deep(.ant-pagination-next),
+.pagination-controls :deep(.ant-pagination-item) {
+  min-width: 36px;
+  height: 36px;
+  line-height: 36px;
+  border-radius: 4px;
+  margin-right: 6px;
+  border: 1px solid #d9d9d9;
 }
 
-.table-container ::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+.pagination-controls :deep(.ant-pagination-prev:hover),
+.pagination-controls :deep(.ant-pagination-next:hover),
+.pagination-controls :deep(.ant-pagination-item:hover) {
+  border-color: #1890ff;
 }
 
-/* 加载状态优化 */
-.ant-spin-container {
-  min-height: 200px;
+.pagination-controls :deep(.ant-pagination-item-active) {
+  background: #1890ff;
+  border-color: #1890ff;
+}
+
+.pagination-controls :deep(.ant-pagination-item-active a) {
+  color: #fff;
+}
+
+.pagination-controls :deep(.ant-pagination-options) {
+  margin-left: 16px;
+}
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.status-active {
+  background-color: #52c41a; /* 绿色 */
+}
+
+.status-inactive {
+  background-color: #ff4d4f; /* 红色 */
 }
 </style>
