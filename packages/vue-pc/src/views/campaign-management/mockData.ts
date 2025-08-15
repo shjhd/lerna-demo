@@ -12,7 +12,12 @@ const mockData: Campaign[] = [
     creator: '张三',
     createTime: '2023-01-01 10:30:00',
     editor: '李四',
-    updateTime: '2023-01-02 14:15:00'
+    updateTime: '2023-01-02 14:15:00',
+    startTime: '2023-01-01 00:00:00',
+    endTime: '2023-12-31 23:59:59',
+    salesPersonCode: 'SP001',
+    salesPersonName: '张三',
+    specialBusinessType: '类型1'
   },
   {
     id: '2',
@@ -24,7 +29,12 @@ const mockData: Campaign[] = [
     creator: '王五',
     createTime: '2023-06-01 09:15:00',
     editor: '赵六',
-    updateTime: '2023-06-02 16:45:00'
+    updateTime: '2023-06-02 16:45:00',
+    startTime: '2023-06-01 00:00:00',
+    endTime: '2024-05-31 23:59:59',
+    salesPersonCode: 'SP002',
+    salesPersonName: '王五',
+    specialBusinessType: '类型2'
   },
   {
     id: '3',
@@ -36,7 +46,12 @@ const mockData: Campaign[] = [
     creator: '钱七',
     createTime: '2022-01-01 11:20:00',
     editor: '孙八',
-    updateTime: '2022-01-03 09:30:00'
+    updateTime: '2022-01-03 09:30:00',
+    startTime: '2022-01-01 00:00:00',
+    endTime: '2022-12-31 23:59:59',
+    salesPersonCode: 'SP003',
+    salesPersonName: '钱七',
+    specialBusinessType: '类型1'
   },
   {
     id: '4',
@@ -48,7 +63,12 @@ const mockData: Campaign[] = [
     creator: '周九',
     createTime: '2023-03-01 13:45:00',
     editor: '吴十',
-    updateTime: '2023-03-02 15:20:00'
+    updateTime: '2023-03-02 15:20:00',
+    startTime: '2023-03-01 00:00:00',
+    endTime: '2024-02-28 23:59:59',
+    salesPersonCode: 'SP004',
+    salesPersonName: '周九',
+    specialBusinessType: '类型2'
   },
   {
     id: '5',
@@ -60,7 +80,12 @@ const mockData: Campaign[] = [
     creator: '郑十一',
     createTime: '2023-04-01 09:00:00',
     editor: '王十二',
-    updateTime: '2023-04-02 11:30:00'
+    updateTime: '2023-04-02 11:30:00',
+    startTime: '2023-04-01 00:00:00',
+    endTime: '2024-03-31 23:59:59',
+    salesPersonCode: 'SP005',
+    salesPersonName: '郑十一',
+    specialBusinessType: '类型1'
   },
   {
     id: '6',
@@ -72,7 +97,12 @@ const mockData: Campaign[] = [
     creator: '赵十三',
     createTime: '2022-06-01 14:20:00',
     editor: '钱十四',
-    updateTime: '2022-06-03 10:15:00'
+    updateTime: '2022-06-03 10:15:00',
+    startTime: '2022-06-01 00:00:00',
+    endTime: '2023-05-31 23:59:59',
+    salesPersonCode: 'SP006',
+    salesPersonName: '赵十三',
+    specialBusinessType: '类型2'
   },
   {
     id: '7',
@@ -84,7 +114,12 @@ const mockData: Campaign[] = [
     creator: '孙十五',
     createTime: '2023-02-01 11:00:00',
     editor: '李十六',
-    updateTime: '2023-02-02 16:40:00'
+    updateTime: '2023-02-02 16:40:00',
+    startTime: '2023-02-01 00:00:00',
+    endTime: '2024-01-31 23:59:59',
+    salesPersonCode: 'SP007',
+    salesPersonName: '孙十五',
+    specialBusinessType: '类型1'
   },
   {
     id: '8',
@@ -96,7 +131,12 @@ const mockData: Campaign[] = [
     creator: '周十七',
     createTime: '2023-07-01 09:30:00',
     editor: '吴十八',
-    updateTime: '2023-07-02 14:25:00'
+    updateTime: '2023-07-02 14:25:00',
+    startTime: '2023-07-01 00:00:00',
+    endTime: '2024-06-30 23:59:59',
+    salesPersonCode: 'SP008',
+    salesPersonName: '周十七',
+    specialBusinessType: '类型2'
   },
   {
     id: '9',
@@ -108,7 +148,12 @@ const mockData: Campaign[] = [
     creator: '郑十九',
     createTime: '2022-03-01 15:10:00',
     editor: '王二十',
-    updateTime: '2022-03-02 10:00:00'
+    updateTime: '2022-03-02 10:00:00',
+    startTime: '2022-03-01 00:00:00',
+    endTime: '2023-02-28 23:59:59',
+    salesPersonCode: 'SP009',
+    salesPersonName: '郑十九',
+    specialBusinessType: '类型1'
   },
   {
     id: '10',
@@ -120,7 +165,12 @@ const mockData: Campaign[] = [
     creator: '赵二十一',
     createTime: '2023-05-01 10:45:00',
     editor: '钱二十二',
-    updateTime: '2023-05-02 16:30:00'
+    updateTime: '2023-05-02 16:30:00',
+    startTime: '2023-05-01 00:00:00',
+    endTime: '2024-04-30 23:59:59',
+    salesPersonCode: 'SP010',
+    salesPersonName: '赵二十一',
+    specialBusinessType: '类型2'
   },
   {
     id: '11',
@@ -132,7 +182,12 @@ const mockData: Campaign[] = [
     creator: '孙二十三',
     createTime: '2023-08-01 09:15:00',
     editor: '李二十四',
-    updateTime: '2023-08-02 14:10:00'
+    updateTime: '2023-08-02 14:10:00',
+    startTime: '2023-08-01 00:00:00',
+    endTime: '2024-07-31 23:59:59',
+    salesPersonCode: 'SP011',
+    salesPersonName: '孙二十三',
+    specialBusinessType: '类型1'
   },
   {
     id: '12',
@@ -144,7 +199,12 @@ const mockData: Campaign[] = [
     creator: '周二十五',
     createTime: '2022-04-01 11:30:00',
     editor: '吴二十六',
-    updateTime: '2022-04-02 15:45:00'
+    updateTime: '2022-04-02 15:45:00',
+    startTime: '2022-04-01 00:00:00',
+    endTime: '2023-03-31 23:59:59',
+    salesPersonCode: 'SP012',
+    salesPersonName: '周二十五',
+    specialBusinessType: '类型2'
   },
   {
     id: '13',
@@ -156,7 +216,12 @@ const mockData: Campaign[] = [
     creator: '郑二十七',
     createTime: '2023-09-01 10:00:00',
     editor: '王二十八',
-    updateTime: '2023-09-02 14:20:00'
+    updateTime: '2023-09-02 14:20:00',
+    startTime: '2023-09-01 00:00:00',
+    endTime: '2024-08-31 23:59:59',
+    salesPersonCode: 'SP013',
+    salesPersonName: '郑二十七',
+    specialBusinessType: '类型1'
   },
   {
     id: '14',
@@ -168,7 +233,12 @@ const mockData: Campaign[] = [
     creator: '赵二十九',
     createTime: '2023-10-01 09:45:00',
     editor: '钱三十',
-    updateTime: '2023-10-02 15:10:00'
+    updateTime: '2023-10-02 15:10:00',
+    startTime: '2023-10-01 00:00:00',
+    endTime: '2024-09-30 23:59:59',
+    salesPersonCode: 'SP014',
+    salesPersonName: '赵二十九',
+    specialBusinessType: '类型2'
   },
   {
     id: '15',
@@ -180,8 +250,76 @@ const mockData: Campaign[] = [
     creator: '孙三十一',
     createTime: '2022-05-01 14:30:00',
     editor: '李三十二',
-    updateTime: '2022-05-02 10:15:00'
+    updateTime: '2022-05-02 10:15:00',
+    startTime: '2022-05-01 00:00:00',
+    endTime: '2023-04-30 23:59:59',
+    salesPersonCode: 'SP015',
+    salesPersonName: '孙三十一',
+    specialBusinessType: '类型1'
   }
+];
+
+// 商品名称列表 - 用于商品名称输入框的模糊搜索
+export const productNames = [
+  '商品A',
+  '商品B',
+  '商品C',
+  '商品D',
+  '商品E',
+  '商品F',
+  '商品G',
+  '商品H',
+  '商品I',
+  '商品J',
+  '商品K',
+  '商品L',
+  '商品M',
+  '商品N',
+  '商品O'
+];
+
+// 销售方案编码列表 - 用于销售方案编码输入框的模糊搜索
+export const salesPlanCodes = [
+  'SPC001',
+  'SPC002',
+  'SPC003',
+  'SPC004',
+  'SPC005',
+  'SPC006',
+  'SPC007',
+  'SPC008',
+  'SPC009',
+  'SPC010',
+  'SPC011',
+  'SPC012',
+  'SPC013',
+  'SPC014',
+  'SPC015'
+];
+
+// 商品选项列表 - 用于详情页下拉框
+export const productOptions = [
+  { value: '商品A', label: '商品A' },
+  { value: '商品B', label: '商品B' },
+  { value: '商品C', label: '商品C' },
+  { value: '商品D', label: '商品D' },
+  { value: '商品E', label: '商品E' },
+  { value: '商品F', label: '商品F' },
+  { value: '商品G', label: '商品G' },
+  { value: '商品H', label: '商品H' },
+  { value: '商品I', label: '商品I' },
+  { value: '商品J', label: '商品J' },
+  { value: '商品K', label: '商品K' },
+  { value: '商品L', label: '商品L' },
+  { value: '商品M', label: '商品M' },
+  { value: '商品N', label: '商品N' },
+  { value: '商品O', label: '商品O' }
+];
+
+// 特殊业务类型选项列表 - 用于详情页下拉框
+export const specialBusinessTypeOptions = [
+  { value: '类型1', label: '类型1' },
+  { value: '类型2', label: '类型2' }
 ];
 
 export default mockData;

@@ -21,11 +21,11 @@
               <span class="detail-label">销售商品名称：</span>
               <div class="detail-value">
                 <a-select 
-                  v-model:value="campaignDetail.productId" 
-                  style="width: 100%" 
-                  :options="productOptions" 
-                  :disabled="true"
-                  class="detail-select"
+                  v-model:value="campaignDetail.productName" 
+                  :disabled="true" 
+                  class="detail-select" 
+                  :options="productOptions"
+                  style="width: 100%"
                 />
               </div>
             </div>
@@ -60,10 +60,10 @@
               <div class="detail-value">
                 <a-select 
                   v-model:value="campaignDetail.specialBusinessType" 
-                  style="width: 100%" 
-                  :options="typeOptions" 
-                  :disabled="true"
-                  class="detail-select"
+                  :disabled="true" 
+                  class="detail-select" 
+                  :options="specialBusinessTypeOptions"
+                  style="width: 100%"
                 />
               </div>
             </div>
@@ -134,6 +134,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
 import { getCampaignList } from '../api';
 import type { Campaign } from '../types';
+import { productOptions, specialBusinessTypeOptions } from '../mockData';
 
 // 路由
 const route = useRoute();
@@ -143,13 +144,6 @@ const router = useRouter();
 const campaignDetail = ref<Campaign | null>(null);
 const loading = ref(false);
 
-// Mock商品数据
-const mockProducts = [
-  { value: '1', label: '商品1' },
-  { value: '2', label: '商品2' },
-  { value: '3', label: '商品3' },
-];
-
 // 渠道选项
 const channelOptions = [
   { value: 'life', label: '寿险' },
@@ -158,36 +152,6 @@ const channelOptions = [
   { value: 'pension', label: '养老险' },
   { value: 'health', label: '健康险直销' },
 ];
-
-// 投保方式选项
-const methodOptions = [
-  { value: 'online', label: '线上投保' },
-  { value: 'offline', label: '线下投保' },
-];
-
-// 特殊业务类型选项
-const typeOptions = [
-  { value: 'type1', label: '类型1' },
-  { value: 'type2', label: '类型2' },
-];
-
-// 商品选项（基于传入数据）
-const productOptions = computed(() => {
-  // 如果有传入的商品ID，则确保它在选项中
-  if (campaignDetail.value?.productId) {
-    const exists = mockProducts.some(p => p.value === campaignDetail.value?.productId);
-    if (!exists) {
-      return [
-        ...mockProducts,
-        { 
-          value: campaignDetail.value.productId, 
-          label: campaignDetail.value.productName || campaignDetail.value.productId 
-        }
-      ];
-    }
-  }
-  return mockProducts;
-});
 
 // 获取详情数据
 const loadData = async () => {

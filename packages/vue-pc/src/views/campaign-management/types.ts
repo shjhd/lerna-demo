@@ -27,6 +27,11 @@ export interface Campaign {
   createTime: string; // 创建时间
   editor: string; // 编辑人
   updateTime: string; // 更新时间
+  startTime?: string; // 投放开始时间
+  endTime?: string; // 投放结束时间
+  salesPersonCode?: string; // 销售人员代码
+  salesPersonName?: string; // 销售人员姓名
+  specialBusinessType?: string; // 特殊业务类型
 }
 
 // 投放记录列表响应

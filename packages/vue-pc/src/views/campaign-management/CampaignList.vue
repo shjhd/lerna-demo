@@ -16,12 +16,28 @@
         <a-row :gutter="24">
           <a-col :span="6">
             <a-form-item label="商品名称" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
-              <a-input v-model:value="searchForm.productName" placeholder="请输入" style="width: 100%" />
+              <a-auto-complete
+                v-model:value="searchForm.productName"
+                :options="productNameOptions"
+                placeholder="请输入商品名称"
+                allow-clear
+                style="width: 100%"
+                @pressEnter="handleSearch"
+                @search="onProductNameSearch"
+              />
             </a-form-item>
           </a-col>
           <a-col :span="6">
             <a-form-item label="销售方案编码" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
-              <a-input v-model:value="searchForm.salesPlanCode" placeholder="请输入" style="width: 100%" />
+              <a-auto-complete
+                v-model:value="searchForm.salesPlanCode"
+                :options="salesPlanCodeOptions"
+                placeholder="请输入销售方案编码"
+                allow-clear
+                style="width: 100%"
+                @pressEnter="handleSearch"
+                @search="onSalesPlanCodeSearch"
+              />
             </a-form-item>
           </a-col>
           <a-col :span="6">
@@ -66,8 +82,8 @@
           <a-col :span="6">
             <a-form-item label="状态" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
               <a-select v-model:value="searchForm.status" placeholder="请选择" allow-clear style="width: 100%">
-                <a-select-option value="1">有效</a-select-option>
-                <a-select-option value="0">无效</a-select-option>
+                <a-select-option :value="1">有效</a-select-option>
+                <a-select-option :value="0">无效</a-select-option>
               </a-select>
             </a-form-item>
           </a-col>
@@ -121,7 +137,7 @@
         </div>
         <div class="pagination-controls">
           <a-pagination
-            v-model:current-page="pagination.pageNum"
+            v-model:current="pagination.pageNum"
             v-model:page-size="pagination.pageSize"
             :total="pagination.total"
             show-size-changer
@@ -145,7 +161,7 @@ import type {
   PaginationParams
 } from './types';
 import { useRouter } from 'vue-router';
-import mockData from './mockData'; // 导入独立的mock数据
+import mockData, { productNames, salesPlanCodes } from './mockData'; // 更新导入语句
 
 // 路由
 const router = useRouter();
@@ -171,7 +187,7 @@ const columns = [
     dataIndex: 'productName',
     key: 'productName',
     ellipsis: true,
-    width: 120,  // 从150调整为120
+    width: 120,
     tooltip: (text: string) => text
   },
   {
@@ -179,7 +195,7 @@ const columns = [
     dataIndex: 'salesPlanCode',
     key: 'salesPlanCode',
     ellipsis: true,
-    width: 120,  // 从150调整为120
+    width: 120,
     tooltip: (text: string) => text
   },
   {
@@ -187,7 +203,7 @@ const columns = [
     dataIndex: 'salesChannel',
     key: 'salesChannel',
     ellipsis: true,
-    width: 100,  // 从120调整为100
+    width: 100,
     customRender: ({ text }: { text: string }) => {
       const channelMap: Record<string, string> = {
         'life': '寿险',
@@ -204,7 +220,7 @@ const columns = [
     dataIndex: 'validPeriod',
     key: 'validPeriod',
     ellipsis: true,
-    width: 160,  // 从200调整为160
+    width: 160,
     tooltip: (text: string) => text
   },
   // 表格列定义中的状态列应该这样定义：
@@ -220,7 +236,7 @@ const columns = [
     dataIndex: 'creator',
     key: 'creator',
     ellipsis: true,
-    width: 100,  // 从120调整为100
+    width: 100,
     tooltip: (text: string) => text
   },
   {
@@ -228,7 +244,7 @@ const columns = [
     dataIndex: 'createTime',
     key: 'createTime',
     ellipsis: true,
-    width: 150,  // 从180调整为150
+    width: 150,
     tooltip: (text: string) => text
   },
   {
@@ -236,7 +252,7 @@ const columns = [
     dataIndex: 'editor',
     key: 'editor',
     ellipsis: true,
-    width: 100,  // 从120调整为100
+    width: 100,
     tooltip: (text: string) => text
   },
   {
@@ -244,14 +260,14 @@ const columns = [
     dataIndex: 'updateTime',
     key: 'updateTime',
     ellipsis: true,
-    width: 150,  // 从180调整为150
+    width: 150,
     tooltip: (text: string) => text
   },
   {
     title: '操作',
     key: 'action',
     slots: { customRender: 'action' },
-    width: 80   // 保持80不变
+    width: 80
   },
 ];
 
@@ -264,11 +280,17 @@ const loadData = async () => {
     
     // 根据搜索条件过滤数据
     if (searchForm.productName) {
-      filteredData = filteredData.filter(item => item.productName.includes(searchForm.productName!));
+      // 使用模糊搜索过滤商品名称
+      filteredData = filteredData.filter(item => 
+        item.productName.toLowerCase().includes(searchForm.productName!.toLowerCase())
+      );
     }
     
     if (searchForm.salesPlanCode) {
-      filteredData = filteredData.filter(item => item.salesPlanCode.includes(searchForm.salesPlanCode!));
+      // 使用模糊搜索过滤销售方案编码
+      filteredData = filteredData.filter(item => 
+        item.salesPlanCode.toLowerCase().includes(searchForm.salesPlanCode!.toLowerCase())
+      );
     }
     
     if (searchForm.salesChannel) {
@@ -280,7 +302,9 @@ const loadData = async () => {
     // 在loadData函数中的状态过滤逻辑部分进行如下修改：
     // 修复状态过滤逻辑：只有当状态筛选条件存在时才进行过滤
     if (searchForm.status !== undefined && searchForm.status !== null) {
-      filteredData = filteredData.filter(item => item.status === searchForm.status);
+      // 确保状态值是数字类型进行比较
+      const statusValue = typeof searchForm.status === 'string' ? parseInt(searchForm.status, 10) : searchForm.status;
+      filteredData = filteredData.filter(item => item.status === statusValue);
     }
     
     if (searchForm.validPeriod && Array.isArray(searchForm.validPeriod) && searchForm.validPeriod.length === 2) {
@@ -357,6 +381,40 @@ const handleDetail = (record: Campaign) => {
 onMounted(() => {
   loadData();
 });
+
+// 自动补全选项
+const productNameOptions = ref<{ value: string }[]>([]);
+const salesPlanCodeOptions = ref<{ value: string }[]>([]);
+
+// 商品名称搜索处理
+const onProductNameSearch = (searchText: string) => {
+  if (!searchText) {
+    productNameOptions.value = [];
+    return;
+  }
+  
+  // 根据输入文本过滤商品名称
+  const filteredOptions = productNames
+    .filter(name => name.toLowerCase().includes(searchText.toLowerCase()))
+    .map(name => ({ value: name }));
+    
+  productNameOptions.value = filteredOptions;
+};
+
+// 销售方案编码搜索处理
+const onSalesPlanCodeSearch = (searchText: string) => {
+  if (!searchText) {
+    salesPlanCodeOptions.value = [];
+    return;
+  }
+  
+  // 根据输入文本过滤销售方案编码
+  const filteredOptions = salesPlanCodes
+    .filter(code => code.toLowerCase().includes(searchText.toLowerCase()))
+    .map(code => ({ value: code }));
+    
+  salesPlanCodeOptions.value = filteredOptions;
+};
 </script>
 
 <style scoped>
