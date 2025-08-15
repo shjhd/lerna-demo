@@ -67,6 +67,12 @@ const routes = [
     name: 'ModularCraft',
     component: () => import('@/views/ModularCraft/page.vue'),
   },
+  // 添加登录页面路由
+  {
+    path: '/login',
+    name: 'Login',
+    component: () => import('@/views/Login/index.vue'),
+  },
 ];
 
 const router = createRouter({
