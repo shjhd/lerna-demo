@@ -73,6 +73,11 @@ const routes = [
     name: 'Login',
     component: () => import('@/views/Login/index.vue'),
   },
+  {
+    path: '/product-shelf',
+    name: 'ProductShelf',
+    component: () => import('@/views/ProductShelf/index.vue'),
+  },
 ];
 
 const router = createRouter({
