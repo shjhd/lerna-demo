@@ -145,6 +145,8 @@
 import { ref, computed, onMounted } from 'vue';
 import { Tab, Tabs, List, Cell, Button, Tag, Icon } from 'vant';
 import { productShelfMockData } from './mockData';
+// 导入httpClient
+import httpClient from '/Users/miyokog/Documents/workspace/lerna-demo/packages/vue-mobile/src/utils/http-client';
 
 // 一级导航激活索引
 const activeLevel1Tab = ref(0);
@@ -162,10 +164,14 @@ const products = ref([]);
 const pageSize = ref(3); // 每页加载数量
 const currentPage = ref(1); // 当前页码
 const displayedProducts = ref([]); // 已显示的产品
+// 存储从接口获取的完整数据
+const shelfData = ref({});
+// 加载状态
+const isLoading = ref(false);
 
 // 获取一级tab数据
 const level1Tabs = computed(() => {
-  return productShelfMockData.data?.detail?.exhibitShelfFieldVoList || [];
+  return shelfData.value?.detail?.exhibitShelfFieldVoList || [];
 });
 
 // 获取当前二级tab数据
@@ -202,6 +208,55 @@ const currentBoothId = computed(() => {
   // 如果都没有，返回空字符串
   return '';
 });
+
+// 模拟接口请求获取货架数据
+function fetchShelfData() {
+  isLoading.value = true;
+  error.value = false;
+
+  // 模拟网络延迟
+  setTimeout(() => {
+    try {
+      // 模拟接口请求，使用mock数据
+      // 真实接口请求逻辑（已注释）
+      /*
+      httpClient.get('/api/product/shelf')
+        .then(response => {
+          // 假设接口返回格式与mockData一致
+          if (response.code === 200 && response.data) {
+            shelfData.value = response.data;
+          } else {
+            // 接口返回异常，使用mock数据
+            shelfData.value = productShelfMockData.data || {};
+          }
+        })
+        .catch(err => {
+          console.error('Failed to fetch shelf data:', err);
+          // 请求失败，使用mock数据
+          shelfData.value = productShelfMockData.data || {};
+        })
+        .finally(() => {
+          isLoading.value = false;
+          // 数据加载完成后加载产品
+          loadProducts();
+        });
+      */
+
+      // 模拟接口成功返回
+      shelfData.value = productShelfMockData.data || {};
+      isLoading.value = false;
+      // 数据加载完成后加载产品
+      loadProducts();
+    } catch (err) {
+      console.error('Failed to fetch shelf data:', err);
+      shelfData.value = productShelfMockData.data || {};
+      isLoading.value = false;
+      error.value = true;
+      // 加载产品
+      loadProducts();
+    }
+  }, 1000); // 模拟1秒网络延迟
+}
 
 // 处理一级tab切换
 function handleLevel1TabChange() {
@@ -243,7 +298,8 @@ function resetPagination() {
 function loadProducts() {
   const boothId = currentBoothId.value;
   if (boothId) {
-    products.value = productShelfMockData.data?.boothId2ExhibitsMap?.[boothId] || [];
+    // 修复数据获取路径，从detail对象下获取boothId2ExhibitsMap
+    products.value = shelfData.value?.detail?.boothId2ExhibitsMap?.[boothId] || [];
   } else {
     products.value = [];
   }
@@ -295,9 +351,9 @@ function loadMoreProducts() {
   loading.value = false;
 }
 
-// 初始加载产品数据
+// 组件挂载时加载数据
 onMounted(() => {
-  loadProducts();
+  fetchShelfData();
 });
 </script>
 

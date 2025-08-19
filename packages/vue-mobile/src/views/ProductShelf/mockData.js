@@ -145,9 +145,8 @@ export const productShelfMockData = {
             }
           ]
         }
-      ]
-    },
-    "boothId2ExhibitsMap": {
+      ],
+      "boothId2ExhibitsMap": {
       // 重疾险专区 -> 高端 -> 终身重疾
       "100111": [
         {
@@ -568,6 +567,7 @@ export const productShelfMockData = {
           "exhibitBaseAmtUnit": "元"
         }
       ]
+    }
     }
   }
 };
