@@ -10,11 +10,9 @@
         :title-active-color="'#FF6026'"
         :title-inactive-color="'#333333'"
         :color="'#FF6026'"
+        @change="handleLevel1TabChange"
       >
-        <van-tab title="保障"></van-tab>
-        <van-tab title="储蓄"></van-tab>
-        <van-tab title="养老"></van-tab>
-        <van-tab title="全部"></van-tab>
+        <van-tab v-for="(level1Tab, index) in level1Tabs" :key="index" :title="level1Tab.shelfFieldName"></van-tab>
       </van-tabs>
 
       <!-- 二级导航 -->
@@ -23,25 +21,41 @@
         class="level2-tabs"
         :border="false"
         type="segment"
+        @change="handleLevel2TabChange"
       >
-        <van-tab title="热销"></van-tab>
-        <van-tab title="新品"></van-tab>
-        <van-tab title="津贴"></van-tab>
-        <van-tab title="津贴"></van-tab>
-        <van-tab title="津贴"></van-tab>
-        <van-tab title="津贴"></van-tab>
+        <van-tab v-for="(level2Tab, index) in currentLevel2Tabs" :key="index" :title="level2Tab.shelfFieldName"></van-tab>
       </van-tabs>
+
+      <!-- 三级导航 -->
+      <div class="level3-tabs-container">
+        <van-tabs
+          v-model:active="activeLevel3Tab"
+          class="level3-tabs"
+          :border="false"
+          :title-active-color="'#FF6026'"
+          :title-inactive-color="'#333333'"
+          :color="'#FF6026'"
+          :scrollable="true"
+          @change="handleLevel3TabChange"
+        >
+          <van-tab v-for="(level3Tab, index) in currentLevel3Tabs" :key="index" :title="level3Tab.shelfFieldName"></van-tab>
+        </van-tabs>
+      </div>
     </div>
 
     <!-- 产品列表 -->
     <van-list
-      class="product-list"
+      v-model:loading="loading"
+      v-model:error="error"
       :finished="finished"
-      :loading="loading"
+      finished-text="没有更多了"
+      loading-text="加载中..."
       @load="onLoad"
+      :immediate-check="true"
+      class="product-list"
     >
       <van-cell
-        v-for="(product, index) in products"
+        v-for="(product, index) in displayedProducts"
         :key="index"
         class="product-item"
         :border="false"
@@ -49,11 +63,11 @@
         <template #default>
           <div class="product-content">
             <div class="product-image">
-              <img :src="product.image" :alt="product.name" class="product-img">
+              <img :src="product.smallPictureUrl" :alt="product.exhibitName" class="product-img">
             </div>
             <div class="product-info">
-              <h3 class="product-name">{{ product.name }}</h3>
-              <p class="product-desc">{{ product.description }}</p>
+              <h3 class="product-name">{{ product.exhibitName }}</h3>
+              <p class="product-desc">{{ product.exhibitMarking }}</p>
               <div class="product-tags">
                 <van-tag
                   v-for="(tag, tagIndex) in product.tags"
@@ -67,8 +81,8 @@
               <div class="price-actions">
                 <!-- 修改价格显示结构 -->
                 <div class="product-price">
-                  <span class="price-number">250</span>
-                  <span class="price-unit">元</span>
+                  <span class="price-number">{{ product.exhibitBaseAmt }}</span>
+                  <span class="price-unit">{{ product.exhibitBaseAmtUnit }}</span>
                   <span class="price-reference">(参考价)</span>
                 </div>
                 <div class="product-actions">
@@ -84,7 +98,7 @@
                   <van-button
                     class="deploy-btn"
                     size="mini"
-                    type="primary"
+                    type="default"
                     color="#ff6b00"
                     round
                   >
@@ -126,6 +140,166 @@
     </van-cell>
   </div>
 </template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue';
+import { Tab, Tabs, List, Cell, Button, Tag, Icon } from 'vant';
+import { productShelfMockData } from './mockData';
+
+// 一级导航激活索引
+const activeLevel1Tab = ref(0);
+// 二级导航激活索引
+const activeLevel2Tab = ref(0);
+// 三级导航激活索引
+const activeLevel3Tab = ref(0);
+// 列表加载状态
+const loading = ref(false);
+const finished = ref(false);
+const error = ref(false); // 错误状态
+// 产品数据
+const products = ref([]);
+// 分页相关
+const pageSize = ref(3); // 每页加载数量
+const currentPage = ref(1); // 当前页码
+const displayedProducts = ref([]); // 已显示的产品
+
+// 获取一级tab数据
+const level1Tabs = computed(() => {
+  return productShelfMockData.data?.detail?.exhibitShelfFieldVoList || [];
+});
+
+// 获取当前二级tab数据
+const currentLevel2Tabs = computed(() => {
+  const currentLevel1Tab = level1Tabs.value[activeLevel1Tab.value];
+  return currentLevel1Tab?.childrenFieldPo || [];
+});
+
+// 获取当前三级tab数据
+const currentLevel3Tabs = computed(() => {
+  const currentLevel2Tab = currentLevel2Tabs.value[activeLevel2Tab.value];
+  return currentLevel2Tab?.childrenFieldPo || [];
+});
+
+// 获取当前选中的最底层tab的boothId
+const currentBoothId = computed(() => {
+  // 获取当前选中的各级tab
+  const currentLevel1Tab = level1Tabs.value[activeLevel1Tab.value];
+  const currentLevel2Tab = currentLevel2Tabs.value[activeLevel2Tab.value];
+  const currentLevel3Tab = currentLevel3Tabs.value[activeLevel3Tab.value];
+
+  // 优先取三级tab的boothId
+  if (currentLevel3Tab?.boothId) {
+    return currentLevel3Tab.boothId;
+  }
+  // 如果没有三级tab，取二级tab的boothId
+  else if (currentLevel2Tab?.boothId) {
+    return currentLevel2Tab.boothId;
+  }
+  // 如果只有一级tab，取一级tab的boothId
+  else if (currentLevel1Tab?.boothId) {
+    return currentLevel1Tab.boothId;
+  }
+  // 如果都没有，返回空字符串
+  return '';
+});
+
+// 处理一级tab切换
+function handleLevel1TabChange() {
+  // 重置二级和三级tab到第一个
+  activeLevel2Tab.value = 0;
+  activeLevel3Tab.value = 0;
+  // 重置分页
+  resetPagination();
+  // 加载对应产品数据
+  loadProducts();
+}
+
+// 处理二级tab切换
+function handleLevel2TabChange() {
+  // 重置三级tab到第一个
+  activeLevel3Tab.value = 0;
+  // 重置分页
+  resetPagination();
+  // 加载对应产品数据
+  loadProducts();
+}
+
+// 处理三级tab切换
+function handleLevel3TabChange() {
+  // 重置分页
+  resetPagination();
+  // 加载对应产品数据
+  loadProducts();
+}
+
+// 重置分页
+function resetPagination() {
+  currentPage.value = 1;
+  displayedProducts.value = [];
+  finished.value = false;
+}
+
+// 加载产品数据
+function loadProducts() {
+  const boothId = currentBoothId.value;
+  if (boothId) {
+    products.value = productShelfMockData.data?.boothId2ExhibitsMap?.[boothId] || [];
+  } else {
+    products.value = [];
+  }
+  
+  // 重置已显示的产品
+  displayedProducts.value = [];
+  currentPage.value = 1;
+  finished.value = false;
+  
+  // 加载第一页数据
+  loadMoreProducts();
+}
+
+// 下拉加载更多数据
+function onLoad() {
+  // 延迟加载，模拟网络请求
+  setTimeout(() => {
+    try {
+      loadMoreProducts();
+    } catch (err) {
+      error.value = true;
+    }
+  }, 800);
+}
+
+// 加载更多产品
+function loadMoreProducts() {
+  // 如果已经加载完所有数据或没有boothId，直接返回
+  if (finished.value || !currentBoothId.value) {
+    loading.value = false;
+    return;
+  }
+  
+  const start = (currentPage.value - 1) * pageSize.value;
+  const end = currentPage.value * pageSize.value;
+  const newProducts = products.value.slice(start, end);
+  
+  // 添加新加载的产品到已显示列表
+  displayedProducts.value = [...displayedProducts.value, ...newProducts];
+  
+  // 检查是否还有更多数据
+  if (end >= products.value.length || newProducts.length === 0) {
+    finished.value = true;
+  } else {
+    currentPage.value++;
+  }
+  
+  // 重置加载状态
+  loading.value = false;
+}
+
+// 初始加载产品数据
+onMounted(() => {
+  loadProducts();
+});
+</script>
 
 <style scoped>
 /* 添加页面容器样式 */
@@ -267,7 +441,7 @@
 }
 
 .product-tags {
-  margin: 0; /* 去除间距 */
+  margin: 5px 0; /* 调整间距 */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -322,7 +496,7 @@
 
 .plan-btn,
 .deploy-btn,
-.buy-btn {
+buy-btn {
   font-size: 11px; /* 按钮字体大小改为11px */
   padding: 2px;
 }
@@ -381,71 +555,10 @@
 .advisor-desc {
   font-size: 12px;
   color: #999999;
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
+/* 调整按钮样式 */
 .consult-btn {
-  font-size: 12px;
-  padding: 6px 15px;
-  flex-shrink: 0;
-  margin-left: 10px;
+  min-width: 80px;
 }
 </style>
-
-<script setup lang="ts">
-import { ref } from 'vue';
-import { Tab, Tabs, List, Cell, Button, Tag, Icon } from 'vant';
-
-// 一级导航激活索引
-const activeLevel1Tab = ref(0);
-// 二级导航激活索引
-const activeLevel2Tab = ref(0);
-// 列表加载状态
-const loading = ref(false);
-const finished = ref(false);
-
-// 产品数据
-const products = ref([
-  {
-    name: 'e生保·百万医疗2024升级',
-    description: '小口直选，医疗险领域的"第一大品"',
-    image: '/src/assets/images/sample.jpeg',
-    tags: ['标签', '标签'],
-    price: '250元 (参考价)'
-  },
-  {
-    name: '安欣保·20年保证续保',
-    description: '保证续保20年，长期防风风向标',
-    image: '/src/assets/images/sample.jpeg',
-    tags: ['标签', '标签'],
-    price: '250元 (参考价)'
-  },
-  {
-    name: 'e生保·慢病医疗2024升级',
-    description: '特定亚健康/慢病人群可投的百万医疗险',
-    image: '/src/assets/images/sample.jpeg',
-    tags: ['标签', '标签'],
-    price: '250元 (参考价)'
-  },
-  {
-    name: 'e生保·抗癌医疗险',
-    description: '癌症高龄也可保，含105种抗癌特药',
-    image: '/src/assets/images/sample.jpeg',
-    tags: ['标签', '标签'],
-    price: '250元 (参考价)'
-  }
-]);
-
-// 模拟加载更多数据
-const onLoad = () => {
-  // 异步更新数据
-  setTimeout(() => {
-    // 加载完成
-    loading.value = false;
-    finished.value = true;
-  }, 1000);
-};
-</script>
