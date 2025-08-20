@@ -12,7 +12,7 @@
         :color="'#FF6026'"
         @change="handleLevel1TabChange"
       >
-        <van-tab v-for="(level1Tab, index) in level1Tabs" :key="index" :title="level1Tab.shelfFieldName"></van-tab>
+        <van-tab v-for="(channel, index) in salesChannels" :key="index" :title="channel.salesChannelName"></van-tab>
       </van-tabs>
 
       <!-- 二级导航 -->
@@ -27,20 +27,15 @@
       </van-tabs>
 
       <!-- 三级导航 -->
-      <div class="level3-tabs-container">
-        <van-tabs
-          v-model:active="activeLevel3Tab"
-          class="level3-tabs"
-          :border="false"
-          :title-active-color="'#FF6026'"
-          :title-inactive-color="'#333333'"
-          :color="'#FF6026'"
-          :scrollable="true"
-          @change="handleLevel3TabChange"
-        >
-          <van-tab v-for="(level3Tab, index) in currentLevel3Tabs" :key="index" :title="level3Tab.shelfFieldName"></van-tab>
-        </van-tabs>
-      </div>
+      <van-tabs
+        v-model:active="activeLevel3Tab"
+        class="level3-tabs"
+        :border="false"
+        type="segment"
+        @change="handleLevel3TabChange"
+      >
+        <van-tab v-for="(level3Tab, index) in currentLevel3Tabs" :key="index" :title="level3Tab.shelfFieldName"></van-tab>
+      </van-tabs>
     </div>
 
     <!-- 产品列表 -->
@@ -50,7 +45,7 @@
       :finished="finished"
       finished-text="没有更多了"
       loading-text="加载中..."
-      @load="onLoad"
+      @load="loadMoreProducts"
       :immediate-check="true"
       class="product-list"
     >
@@ -79,40 +74,15 @@
                 </van-tag>
               </div>
               <div class="price-actions">
-                <!-- 修改价格显示结构 -->
                 <div class="product-price">
                   <span class="price-number">{{ product.exhibitBaseAmt }}</span>
                   <span class="price-unit">{{ product.exhibitBaseAmtUnit }}</span>
                   <span class="price-reference">(参考价)</span>
                 </div>
                 <div class="product-actions">
-                  <van-button
-                    class="plan-btn"
-                    size="mini"
-                    type="default"
-                    color="#ff6b00"
-                    round
-                  >
-                    计划书
-                  </van-button>
-                  <van-button
-                    class="deploy-btn"
-                    size="mini"
-                    type="default"
-                    color="#ff6b00"
-                    round
-                  >
-                    立即投放
-                  </van-button>
-                  <van-button
-                    class="buy-btn"
-                    size="mini"
-                    type="primary"
-                    color="#ff6b00"
-                    round
-                  >
-                    立即投保
-                  </van-button>
+                  <van-button class="plan-btn" size="mini" type="default" color="#ff6b00" round>计划书</van-button>
+                  <van-button class="deploy-btn" size="mini" type="default" color="#ff6b00" round>立即投放</van-button>
+                  <van-button class="buy-btn" size="mini" type="primary" color="#ff6b00" round>立即投保</van-button>
                 </div>
               </div>
             </div>
@@ -133,227 +103,236 @@
             <p class="advisor-desc">真人1V1为您解答疑惑</p>
           </div>
         </div>
-        <van-button class="consult-btn" type="primary" color="#ff6b00" size="small" round>
-          免费咨询
-        </van-button>
+        <van-button class="consult-btn" type="primary" color="#ff6b00" size="small" round>免费咨询</van-button>
       </div>
     </van-cell>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import { Tab, Tabs, List, Cell, Button, Tag, Icon } from 'vant';
-import { productShelfMockData } from './mockData';
-// 导入httpClient
+// 导入优化 - 只导入需要的组件
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
+import { Tabs, Tab, List, Cell, Button, Tag } from 'vant';
 import httpClient from '/Users/miyokog/Documents/workspace/lerna-demo/packages/vue-mobile/src/utils/http-client';
+import { productShelfMockData } from './mockData';
 
-// 一级导航激活索引
-const activeLevel1Tab = ref(0);
-// 二级导航激活索引
-const activeLevel2Tab = ref(0);
-// 三级导航激活索引
-const activeLevel3Tab = ref(0);
-// 列表加载状态
+// 常量定义
+const DEFAULT_PAGE_SIZE = 3;
+const DEFAULT_SALES_CHANNEL = 'D';
+
+// 类型定义
+interface Product {
+  smallPictureUrl: string;
+  exhibitName: string;
+  exhibitMarking: string;
+  tags: string[];
+  exhibitBaseAmt: string | number;
+  exhibitBaseAmtUnit: string;
+}
+
+interface SalesChannel {
+  salesChannel: string;
+  salesChannelName: string;
+}
+
+interface Level3Tab {
+  shelfFieldName: string;
+  boothId: string;
+}
+
+interface Level2Tab {
+  shelfFieldName: string;
+  childrenFieldPo: Level3Tab[];
+}
+
+interface ShelfDataDetail {
+  exhibitShelfFieldVoList: Level2Tab[];
+  boothId2ExhibitsMap: Record<string, Product[]>;
+}
+
+interface ShelfData {
+  salesChannels: SalesChannel[];
+  salesChannel: string;
+  detail: ShelfDataDetail;
+}
+
+// 响应式状态定义
+const activeLevel1Tab = ref<number>(0);
+const activeLevel2Tab = ref<number>(0);
+const activeLevel3Tab = ref<number>(-1); // 初始化为-1表示未选中
+const products = ref<Product[]>([]);
+const shelfData = ref<ShelfData>({} as ShelfData);
+const salesChannels = ref<SalesChannel[]>([]);
+const isLoading = ref<boolean>(false);
+const error = ref<boolean>(false);
 const loading = ref(false);
 const finished = ref(false);
-const error = ref(false); // 错误状态
-// 产品数据
-const products = ref([]);
-// 分页相关
-const pageSize = ref(3); // 每页加载数量
-const currentPage = ref(1); // 当前页码
-const displayedProducts = ref([]); // 已显示的产品
-// 存储从接口获取的完整数据
-const shelfData = ref({});
-// 加载状态
-const isLoading = ref(false);
+const pageSize = ref(DEFAULT_PAGE_SIZE);
+const currentPage = ref(1);
+const displayedProducts = ref<Product[]>([]);
 
-// 获取一级tab数据
-const level1Tabs = computed(() => {
+// 计算属性
+const currentLevel2Tabs = computed(() => {
   return shelfData.value?.detail?.exhibitShelfFieldVoList || [];
 });
 
-// 获取当前二级tab数据
-const currentLevel2Tabs = computed(() => {
-  const currentLevel1Tab = level1Tabs.value[activeLevel1Tab.value];
-  return currentLevel1Tab?.childrenFieldPo || [];
-});
-
-// 获取当前三级tab数据
 const currentLevel3Tabs = computed(() => {
-  const currentLevel2Tab = currentLevel2Tabs.value[activeLevel2Tab.value];
-  return currentLevel2Tab?.childrenFieldPo || [];
+  const level2Tabs = currentLevel2Tabs.value;
+  if (activeLevel2Tab.value >= 0 && activeLevel2Tab.value < level2Tabs.length) {
+    return level2Tabs[activeLevel2Tab.value]?.childrenFieldPo || [];
+  }
+  return [];
 });
 
-// 获取当前选中的最底层tab的boothId
 const currentBoothId = computed(() => {
-  // 获取当前选中的各级tab
-  const currentLevel1Tab = level1Tabs.value[activeLevel1Tab.value];
-  const currentLevel2Tab = currentLevel2Tabs.value[activeLevel2Tab.value];
-  const currentLevel3Tab = currentLevel3Tabs.value[activeLevel3Tab.value];
-
-  // 优先取三级tab的boothId
-  if (currentLevel3Tab?.boothId) {
-    return currentLevel3Tab.boothId;
+  const level3Tabs = currentLevel3Tabs.value;
+  if (activeLevel3Tab.value >= 0 && activeLevel3Tab.value < level3Tabs.length) {
+    return level3Tabs[activeLevel3Tab.value]?.boothId || '';
   }
-  // 如果没有三级tab，取二级tab的boothId
-  else if (currentLevel2Tab?.boothId) {
-    return currentLevel2Tab.boothId;
-  }
-  // 如果只有一级tab，取一级tab的boothId
-  else if (currentLevel1Tab?.boothId) {
-    return currentLevel1Tab.boothId;
-  }
-  // 如果都没有，返回空字符串
   return '';
 });
 
-// 模拟接口请求获取货架数据
-function fetchShelfData() {
+const currentSalesChannel = computed(() => {
+  if (activeLevel1Tab.value >= 0 && activeLevel1Tab.value < salesChannels.value.length) {
+    return salesChannels.value[activeLevel1Tab.value]?.salesChannel || '';
+  }
+  return '';
+});
+
+// 数据获取函数
+const fetchShelfData = async (salesChannel: string, shouldUpdateActiveTab = true) => {
   isLoading.value = true;
   error.value = false;
 
-  // 模拟网络延迟
-  setTimeout(() => {
-    try {
-      // 模拟接口请求，使用mock数据
-      // 真实接口请求逻辑（已注释）
-      /*
-      httpClient.get('/api/product/shelf')
-        .then(response => {
-          // 假设接口返回格式与mockData一致
-          if (response.code === 200 && response.data) {
-            shelfData.value = response.data;
-          } else {
-            // 接口返回异常，使用mock数据
-            shelfData.value = productShelfMockData.data || {};
-          }
-        })
-        .catch(err => {
-          console.error('Failed to fetch shelf data:', err);
-          // 请求失败，使用mock数据
-          shelfData.value = productShelfMockData.data || {};
-        })
-        .finally(() => {
-          isLoading.value = false;
-          // 数据加载完成后加载产品
-          loadProducts();
-        });
-      */
+  try {
+    // 模拟接口请求
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    shelfData.value = productShelfMockData.data || {} as ShelfData;
+    salesChannels.value = shelfData.value?.salesChannels || [];
 
-      // 模拟接口成功返回
-      shelfData.value = productShelfMockData.data || {};
-      isLoading.value = false;
-      // 数据加载完成后加载产品
-      loadProducts();
-    } catch (err) {
-      console.error('Failed to fetch shelf data:', err);
-      shelfData.value = productShelfMockData.data || {};
-      isLoading.value = false;
-      error.value = true;
-      // 加载产品
-      loadProducts();
+    // 更新选中的tab
+    if (shouldUpdateActiveTab) {
+      updateActiveLevel1Tab(salesChannel);
     }
-  }, 1000); // 模拟1秒网络延迟
-}
 
-// 处理一级tab切换
-function handleLevel1TabChange() {
-  // 重置二级和三级tab到第一个
-  activeLevel2Tab.value = 0;
-  activeLevel3Tab.value = 0;
-  // 重置分页
-  resetPagination();
-  // 加载对应产品数据
-  loadProducts();
-}
+    isLoading.value = false;
+    updateSubTabs();
+    nextTick(loadProducts);
+  } catch (err) {
+    console.error('Failed to fetch shelf data:', err);
+    error.value = true;
+    isLoading.value = false;
 
-// 处理二级tab切换
-function handleLevel2TabChange() {
-  // 重置三级tab到第一个
-  activeLevel3Tab.value = 0;
-  // 重置分页
-  resetPagination();
-  // 加载对应产品数据
-  loadProducts();
-}
-
-// 处理三级tab切换
-function handleLevel3TabChange() {
-  // 重置分页
-  resetPagination();
-  // 加载对应产品数据
-  loadProducts();
-}
-
-// 重置分页
-function resetPagination() {
-  currentPage.value = 1;
-  displayedProducts.value = [];
-  finished.value = false;
-}
-
-// 加载产品数据
-function loadProducts() {
-  const boothId = currentBoothId.value;
-  if (boothId) {
-    // 修复数据获取路径，从detail对象下获取boothId2ExhibitsMap
-    products.value = shelfData.value?.detail?.boothId2ExhibitsMap?.[boothId] || [];
-  } else {
-    products.value = [];
+    // 出错时使用默认数据
+    shelfData.value = productShelfMockData.data || {} as ShelfData;
+    salesChannels.value = shelfData.value?.salesChannels || [];
+    updateActiveLevel1Tab(DEFAULT_SALES_CHANNEL);
+    updateSubTabs();
+    nextTick(loadProducts);
   }
-  
-  // 重置已显示的产品
-  displayedProducts.value = [];
+};
+
+// Tab更新函数
+const updateActiveLevel1Tab = (salesChannel: string) => {
+  if (salesChannels.value.length === 0) {
+    activeLevel1Tab.value = 0;
+    return;
+  }
+
+  const channelIndex = salesChannels.value.findIndex(
+    channel => channel.salesChannel === salesChannel
+  );
+
+  activeLevel1Tab.value = channelIndex !== -1 ? channelIndex : 0;
+};
+
+const updateSubTabs = () => {
+  if (shelfData.value?.detail?.exhibitShelfFieldVoList?.length > 0) {
+    activeLevel2Tab.value = 0;
+
+    const currentLevel2Tab = shelfData.value.detail.exhibitShelfFieldVoList[activeLevel2Tab.value];
+    activeLevel3Tab.value = currentLevel2Tab?.childrenFieldPo?.length > 0 ? 0 : -1;
+  } else {
+    activeLevel2Tab.value = 0;
+    activeLevel3Tab.value = -1;
+  }
+};
+
+// Tab切换处理
+const handleLevel1TabChange = () => {
+  updateSubTabs();
+  resetPagination();
+  fetchShelfData(currentSalesChannel.value);
+};
+
+const handleLevel2TabChange = () => {
+  const level2Tabs = currentLevel2Tabs.value;
+  if (activeLevel2Tab.value >= 0 && activeLevel2Tab.value < level2Tabs.length) {
+    const currentLevel2Tab = level2Tabs[activeLevel2Tab.value];
+    activeLevel3Tab.value = currentLevel2Tab?.childrenFieldPo?.length > 0 ? 0 : -1;
+  } else {
+    activeLevel3Tab.value = -1;
+  }
+
+  resetPagination();
+  loadProducts();
+};
+
+const handleLevel3TabChange = () => {
+  resetPagination();
+  loadProducts();
+};
+
+// 分页和产品加载
+const resetPagination = () => {
   currentPage.value = 1;
+  displayedProducts.value = [];
   finished.value = false;
-  
-  // 加载第一页数据
+};
+
+const loadProducts = () => {
+  const boothId = currentBoothId.value;
+  products.value = boothId
+    ? (shelfData.value?.detail?.boothId2ExhibitsMap?.[boothId] || [])
+    : [];
+
+  resetPagination();
   loadMoreProducts();
-}
+};
 
-// 下拉加载更多数据
-function onLoad() {
-  // 延迟加载，模拟网络请求
-  setTimeout(() => {
-    try {
-      loadMoreProducts();
-    } catch (err) {
-      error.value = true;
-    }
-  }, 800);
-}
-
-// 加载更多产品
-function loadMoreProducts() {
-  // 如果已经加载完所有数据或没有boothId，直接返回
-  if (finished.value || !currentBoothId.value) {
+const loadMoreProducts = () => {
+  if (finished.value || loading.value || !currentBoothId.value) {
     loading.value = false;
     return;
   }
-  
+
+  loading.value = true;
+
   const start = (currentPage.value - 1) * pageSize.value;
   const end = currentPage.value * pageSize.value;
   const newProducts = products.value.slice(start, end);
-  
-  // 添加新加载的产品到已显示列表
-  displayedProducts.value = [...displayedProducts.value, ...newProducts];
-  
-  // 检查是否还有更多数据
+
+  displayedProducts.value.push(...newProducts);
+
   if (end >= products.value.length || newProducts.length === 0) {
     finished.value = true;
   } else {
     currentPage.value++;
   }
-  
-  // 重置加载状态
-  loading.value = false;
-}
 
-// 组件挂载时加载数据
+  loading.value = false;
+};
+
+// 组件生命周期
 onMounted(() => {
-  fetchShelfData();
+  fetchShelfData(DEFAULT_SALES_CHANNEL, true);
+});
+
+// 监听销售渠道变化
+watch(salesChannels, () => {
+  if (salesChannels.value.length > 0 && activeLevel1Tab.value >= salesChannels.value.length) {
+    activeLevel1Tab.value = 0;
+  }
 });
 </script>
 
@@ -368,6 +347,7 @@ onMounted(() => {
 .tabs-container {
   background: linear-gradient(to bottom, #FFE6CC, #ffffff);
   padding-top: 10px;
+  padding-bottom: 10px;
 }
 
 /* 一级导航样式 - 使用深度选择器穿透scoped隔离 */
@@ -376,9 +356,10 @@ onMounted(() => {
 }
 
 ::v-deep(.level1-tabs .van-tab) {
-  font-size: 14px;
-  padding: 12px 0;
+  font-size: 15px;
+  padding: 10px 0;
   color: #333333;
+  font-weight: 500;
 }
 
 ::v-deep(.level1-tabs .van-tab.van-tab--active) {
@@ -389,7 +370,7 @@ onMounted(() => {
 /* 短下划线样式 - 居中显示 */
 ::v-deep(.level1-tabs .van-tabs__line) {
   background-color: #FF6026;
-  width: 16px; /* 缩短至16px */
+  width: 16px;
   left: auto;
   right: auto;
   transform: translateX(-50%);
@@ -406,28 +387,30 @@ onMounted(() => {
   background-color: transparent;
 }
 
-/* 二级导航样式 - 椭圆形 */
+/* 二级导航样式 - 椭圆形，与图片匹配的红色背景 */
 ::v-deep(.level2-tabs) {
   background-color: transparent;
-  margin: 10px 15px;
+  margin: 8px 15px 5px;
 }
 
 ::v-deep(.level2-tabs .van-tab) {
   font-size: 14px;
-  padding: 6px 20px; /* 修改padding为20px */
+  padding: 6px 25px;
   border-radius: 50px;
   margin: 0 5px;
-  background-color: #ffffff; /* 未选中时背景改为白色 */
-  border: none; /* 移除边框 */
-  min-width: auto; /* 宽度自适应 */
-  width: auto; /* 宽度自适应 */
+  background-color: #ffffff;
+  border: none;
+  min-width: auto;
+  width: auto;
+  color: #333333;
+  font-weight: 500;
 }
 
 ::v-deep(.level2-tabs .van-tab.van-tab--active) {
   background-color: #FF6026;
   color: #ffffff;
-  font-weight: normal;
-  border: none; /* 选中时也移除边框 */
+  font-weight: bold;
+  border: none;
 }
 
 /* 为.van-tabs__nav添加背景色透明 */
@@ -437,6 +420,42 @@ onMounted(() => {
 
 /* 移除底部边框 */
 ::v-deep(.level2-tabs .van-tabs__wrap) {
+  border: none;
+}
+
+/* 三级导航样式 - 与图片匹配的样式 */
+::v-deep(.level3-tabs) {
+  background-color: transparent;
+  margin: 5px 15px 8px;
+}
+
+/* 三级导航样式 - 增强优先级并调整样式 */
+::v-deep(.level3-tabs .van-tab) {
+  font-size: 13px !important;
+  padding: 4px 15px !important;
+  border-radius: 50px !important;
+  margin: 0 3px !important;
+  background-color: #ffffff !important;
+  border: 1px solid #FFE6CC !important;
+  min-width: auto !important;
+  width: auto !important;
+  color: #333333 !important;
+}
+
+::v-deep(.level3-tabs .van-tab.van-tab--active) {
+  background-color: #ffffff !important;
+  color: #FF6026 !important;
+  font-weight: 500 !important;
+  border: 1px solid #FF6026 !important;
+}
+
+/* 为.van-tabs__nav添加背景色透明 */
+::v-deep(.level3-tabs .van-tabs__nav) {
+  background-color: transparent;
+}
+
+/* 移除底部边框 */
+::v-deep(.level3-tabs .van-tabs__wrap) {
   border: none;
 }
 
@@ -472,7 +491,7 @@ onMounted(() => {
   .product-info {
     flex: 1;
     overflow: hidden;
-    text-align: left; /* 右边文案居左显示 */
+    text-align: left;
   }
 }
 
@@ -480,7 +499,7 @@ onMounted(() => {
 .product-name {
   font-size: 16px;
   font-weight: bold;
-  margin: 0; /* 去除间距 */
+  margin: 0;
   color: #333333;
   white-space: nowrap;
   overflow: hidden;
@@ -488,16 +507,16 @@ onMounted(() => {
 }
 
 .product-desc {
-  font-size: 11px; /* 副标题字体大小改为11px */
+  font-size: 11px;
   color: #999999;
-  margin: 0; /* 去除间距 */
+  margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .product-tags {
-  margin: 5px 0; /* 调整间距 */
+  margin: 5px 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -510,7 +529,7 @@ onMounted(() => {
 ::v-deep(.product-tag) {
   background-color: rgba(255, 96, 38, 0.08);
   border: none;
-  color: #FF6026; /* 标签字体颜色改为#FF6026 */
+  color: #FF6026;
 }
 
 /* 价格和按钮栏左右展示 */
@@ -530,16 +549,16 @@ onMounted(() => {
 }
 
 .price-number {
-  font-size: 18px; /* 250字体大小改为18px */
+  font-size: 18px;
 }
 
 .price-unit {
-  font-size: 13px; /* 元字体大小改为13px */
+  font-size: 13px;
   margin-left: 2px;
 }
 
 .price-reference {
-  font-size: 11px; /* 参考价字体大小改为11px */
+  font-size: 11px;
   margin-left: 4px;
   color: #999999;
   font-weight: normal;
@@ -552,8 +571,8 @@ onMounted(() => {
 
 .plan-btn,
 .deploy-btn,
-buy-btn {
-  font-size: 11px; /* 按钮字体大小改为11px */
+.buy-btn {
+  font-size: 11px;
   padding: 2px;
 }
 

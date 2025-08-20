@@ -3,8 +3,21 @@ export const productShelfMockData = {
   "code": 200,
   "message": "success",
   "data": {
-    "salesChannels": ["寿渠", "健康险直销", "渠道2", "渠道3"],
-    "salesChannel": "online",
+    "salesChannels": [
+      {
+        "salesChannel": "D",
+        "salesChannelName": "健康险直销"
+      },
+      {
+        "salesChannel": "K",
+        "salesChannelName": "银行销售健康险"
+      },
+      {
+        "salesChannel": "L",
+        "salesChannelName": "寿险销售健康险"
+      }
+    ],
+    "salesChannel": "D",
     "detail": {
       "exhibitShelfName": "健康险产品展架",
       "exhibitShelfFieldVoList": [

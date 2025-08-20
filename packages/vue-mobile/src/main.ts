@@ -3,7 +3,7 @@ import App from './App.vue';
 import router from './router';
 import { createPinia } from 'pinia';
 import 'amfe-flexible';
-import { Swipe, SwipeItem, Field, Button, Cell } from 'vant';
+import { Swipe, SwipeItem, Field, Button, Cell, Tab, Tabbar } from 'vant';
 // 引入vxe-table
 import VXETable from 'vxe-table';
 import 'vxe-table/lib/style.css';
@@ -20,6 +20,8 @@ app.use(SwipeItem);
 app.use(Field);
 app.use(Button);
 app.use(Cell);
+app.use(Tab);
+app.use(Tabbar);
 
 // 应用挂载后开始监控
 app.mount('#app');
