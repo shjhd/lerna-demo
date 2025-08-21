@@ -202,6 +202,7 @@ const currentSalesChannel = computed(() => {
 // 数据获取函数
 const fetchShelfData = async (salesChannel: string, shouldUpdateActiveTab = true) => {
   isLoading.value = true;
+  loading.value = true; // 添加这行
   error.value = false;
 
   try {
@@ -216,12 +217,14 @@ const fetchShelfData = async (salesChannel: string, shouldUpdateActiveTab = true
     }
 
     isLoading.value = false;
+    loading.value = false; // 添加这行
     updateSubTabs();
     nextTick(loadProducts);
   } catch (err) {
     console.error('Failed to fetch shelf data:', err);
     error.value = true;
     isLoading.value = false;
+    loading.value = false; // 添加这行
 
     // 出错时使用默认数据
     shelfData.value = productShelfMockData.data || {} as ShelfData;
@@ -259,9 +262,12 @@ const updateSubTabs = () => {
 };
 
 // Tab切换处理
+// 修改handleLevel1TabChange函数
 const handleLevel1TabChange = () => {
   updateSubTabs();
   resetPagination();
+  loading.value = true;
+  // 直接调用而不传递shouldUpdateActiveTab参数，使用默认值true
   fetchShelfData(currentSalesChannel.value);
 };
 
@@ -275,12 +281,14 @@ const handleLevel2TabChange = () => {
   }
 
   resetPagination();
-  loadProducts();
+  loading.value = true; // 立即显示加载状态
+  loadProducts(); // 直接调用，不再使用nextTick
 };
 
 const handleLevel3TabChange = () => {
   resetPagination();
-  loadProducts();
+  loading.value = true; // 立即显示加载状态
+  loadProducts(); // 直接调用，不再使用nextTick
 };
 
 // 分页和产品加载
@@ -292,16 +300,27 @@ const resetPagination = () => {
 
 const loadProducts = () => {
   const boothId = currentBoothId.value;
-  products.value = boothId
-    ? (shelfData.value?.detail?.boothId2ExhibitsMap?.[boothId] || [])
-    : [];
+  console.log('boothId:', boothId); // 添加调试日志
+  
+  // 确保boothId有效
+  if (!boothId) {
+    products.value = [];
+    displayedProducts.value = [];
+    finished.value = true;
+    loading.value = false;
+    return;
+  }
 
-  resetPagination();
+  products.value = shelfData.value?.detail?.boothId2ExhibitsMap?.[boothId] || [];
+  console.log('products loaded:', products.value.length); // 添加调试日志
+  
+  // 即使没有产品也要调用loadMoreProducts来正确设置finished状态
   loadMoreProducts();
 };
 
 const loadMoreProducts = () => {
-  if (finished.value || loading.value || !currentBoothId.value) {
+  // 移除对currentBoothId.value的检查，因为已在loadProducts中检查
+  if (finished.value) {
     loading.value = false;
     return;
   }
@@ -313,6 +332,7 @@ const loadMoreProducts = () => {
   const newProducts = products.value.slice(start, end);
 
   displayedProducts.value.push(...newProducts);
+  console.log('displayedProducts updated:', displayedProducts.value.length); // 添加调试日志
 
   if (end >= products.value.length || newProducts.length === 0) {
     finished.value = true;
@@ -320,7 +340,10 @@ const loadMoreProducts = () => {
     currentPage.value++;
   }
 
-  loading.value = false;
+  // 模拟网络延迟，确保加载状态有足够时间显示
+  setTimeout(() => {
+    loading.value = false;
+  }, 300);
 };
 
 // 组件生命周期
@@ -393,7 +416,8 @@ watch(salesChannels, () => {
   margin: 8px 15px 5px;
 }
 
-::v-deep(.level2-tabs .van-tab) {
+/* 增加选择器特异性，不使用!important */
+::v-deep(.level2-tabs .van-tabs__nav .van-tab) {
   font-size: 14px;
   padding: 6px 25px;
   border-radius: 50px;
@@ -402,20 +426,32 @@ watch(salesChannels, () => {
   border: none;
   min-width: auto;
   width: auto;
+  flex-shrink: 0;
   color: #333333;
   font-weight: 500;
+  white-space: nowrap; /* 确保文字不换行 */
 }
 
-::v-deep(.level2-tabs .van-tab.van-tab--active) {
+::v-deep(.level2-tabs .van-tabs__nav .van-tab.van-tab--active) {
   background-color: #FF6026;
   color: #ffffff;
   font-weight: bold;
   border: none;
 }
 
-/* 为.van-tabs__nav添加背景色透明 */
+/* 为.van-tabs__nav添加背景色透明和滚动设置 */
 ::v-deep(.level2-tabs .van-tabs__nav) {
   background-color: transparent;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  /* 隐藏滚动条 */
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* 隐藏滚动条 - Webkit浏览器 */
+::v-deep(.level2-tabs .van-tabs__nav::-webkit-scrollbar) {
+  display: none;
 }
 
 /* 移除底部边框 */
@@ -429,29 +465,48 @@ watch(salesChannels, () => {
   margin: 5px 15px 8px;
 }
 
-/* 三级导航样式 - 增强优先级并调整样式 */
-::v-deep(.level3-tabs .van-tab) {
-  font-size: 13px !important;
-  padding: 4px 15px !important;
-  border-radius: 50px !important;
-  margin: 0 3px !important;
-  background-color: #ffffff !important;
-  border: 1px solid #FFE6CC !important;
-  min-width: auto !important;
-  width: auto !important;
-  color: #333333 !important;
+/* 三级导航样式 - 调整样式 */
+::v-deep(.level3-tabs .van-tabs__nav .van-tab) {
+  font-size: 13px;
+  padding: 4px 9px;
+  margin: 0 8px; /* 默认左右各12px */
+  background-color: transparent;
+  border: none;
+  min-width: auto;
+  width: auto;
+  flex-shrink: 0;
+  flex: 0 0 auto; /* 不放大，不缩小，自动宽度 */
+  white-space: nowrap; /* 确保文字不换行 */
+}
+/* 第三层tab选中时的颜色 */
+::v-deep(.level3-tabs .van-tab--active) {
+  color: #FF6026;
 }
 
-::v-deep(.level3-tabs .van-tab.van-tab--active) {
-  background-color: #ffffff !important;
-  color: #FF6026 !important;
-  font-weight: 500 !important;
-  border: 1px solid #FF6026 !important;
+/* 第一个tab左边无间距 */
+::v-deep(.level3-tabs .van-tabs__nav .van-tab:first-child) {
+  margin-left: 0;
 }
 
-/* 为.van-tabs__nav添加背景色透明 */
+/* 最后一个tab右边无间距 */
+::v-deep(.level3-tabs .van-tabs__nav .van-tab:last-child) {
+  margin-right: 0;
+}
+
+/* 为.van-tabs__nav添加背景色透明和滚动设置 */
 ::v-deep(.level3-tabs .van-tabs__nav) {
   background-color: transparent;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  display: flex; /* 确保使用flex布局 */
+  /* 隐藏滚动条 */
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* 隐藏滚动条 - Webkit浏览器 */
+::v-deep(.level3-tabs .van-tabs__nav::-webkit-scrollbar) {
+  display: none;
 }
 
 /* 移除底部边框 */
@@ -468,10 +523,19 @@ watch(salesChannels, () => {
 
 .product-item {
   padding: 15px 0;
-  border-bottom: 1px solid #f0f0f0;
   background-color: #ffffff;
-  &:last-child {
-    border-bottom: none;
+  position: relative;
+  &:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 1px;
+    background-color: #e0e0e0;
+    transform: scaleY(0.5);
+    transform-origin: bottom;
+    display: block;
   }
   .product-content {
     display: flex;
