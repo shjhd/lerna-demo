@@ -78,6 +78,11 @@ const routes = [
     name: 'ProductShelf',
     component: () => import('@/views/ProductShelf/index.vue'),
   },
+  {
+    path: '/insurance-page',
+    name: 'InsurancePage',
+    component: () => import('@/views/InsurancePage/index.vue'),
+  },
 ];
 
 const router = createRouter({

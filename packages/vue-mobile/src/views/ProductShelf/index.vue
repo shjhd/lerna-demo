@@ -118,7 +118,7 @@ import { productShelfMockData } from './mockData';
 
 // 常量定义
 const DEFAULT_PAGE_SIZE = 3;
-const DEFAULT_SALES_CHANNEL = 'D';
+const DEFAULT_SALES_CHANNEL = '';
 
 // 类型定义
 interface Product {
