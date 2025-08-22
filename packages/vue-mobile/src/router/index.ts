@@ -83,6 +83,11 @@ const routes = [
     name: 'InsurancePage',
     component: () => import('@/views/InsurancePage/index.vue'),
   },
+  {
+    path: '/add-person',
+    name: 'AddPerson',
+    component: () => import('@/views/InsurancePage/addPersonPage/index.vue'),
+  },
 ];
 
 const router = createRouter({

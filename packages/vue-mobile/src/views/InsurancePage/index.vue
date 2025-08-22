@@ -128,8 +128,10 @@
 <script setup lang="ts">
 // 已经导入了Icon组件，无需修改
 import { ref } from 'vue';
-import { Button,Icon } from 'vant';
+import { Button, Icon } from 'vant';
+import { useRouter } from 'vue-router'; // 添加路由导入
 
+const router = useRouter();
 // 响应式状态
 const activeStep = ref(3); // 当前激活的步骤
 const selectedMode = ref(0); // 0: 清单上传, 1: 手动录入
@@ -152,6 +154,7 @@ const toggleInsured = (id: number) => {
 
 const addInsured = () => {
   // 添加被保人逻辑
+  router.push('/add-person'); // 跳转到新增被保人页面
 };
 </script>
 
